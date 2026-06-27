@@ -1,5 +1,8 @@
 const { createApp } = Vue;
 
+// Trik Sakti: Otomatis deteksi localhost vs internet Vercel
+const API_URL = window.location.origin + "/api";
+
 createApp({
   data() {
     return {
@@ -31,16 +34,20 @@ createApp({
   },
   methods: {
     async loadDataAwal() {
-      const res = await fetch("http://localhost:5000/api/data-awal");
-      const data = await res.json();
-      this.listBbm = data.bensin;
-      this.listMotor = data.motor;
-      if (this.listMotor.length) this.selectedMotor = this.listMotor[0];
-      if (this.listBbm.length) this.selectedBbm = this.listBbm[0];
+      try {
+        const res = await fetch(`${API_URL}/data-awal`);
+        const data = await res.json();
+        this.listBbm = data.bensin || [];
+        this.listMotor = data.motor || [];
+        if (this.listMotor.length) this.selectedMotor = this.listMotor[0];
+        if (this.listBbm.length) this.selectedBbm = this.listBbm[0];
+      } catch (e) {
+        console.error("Gagal memuat data awal:", e);
+      }
     },
     async hitungSimulasi() {
       if (!this.inputUser) return (this.hasil = {});
-      const res = await fetch("http://localhost:5000/api/hitung", {
+      const res = await fetch(`${API_URL}/hitung`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -54,7 +61,7 @@ createApp({
     },
     async prosesLogin() {
       try {
-        const res = await fetch("http://localhost:5000/api/login", {
+        const res = await fetch(`${API_URL}/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -90,7 +97,7 @@ createApp({
       }
     },
     async tambahMotor() {
-      const res = await fetch("http://localhost:5000/api/motor", {
+      const res = await fetch(`${API_URL}/motor`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -109,7 +116,7 @@ createApp({
       this.loadDataAwal();
     },
     async tambahBbm() {
-      const res = await fetch("http://localhost:5000/api/bensin", {
+      const res = await fetch(`${API_URL}/bensin`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -128,20 +135,17 @@ createApp({
       this.loadDataAwal();
     },
     async updateDataBbm() {
-      const res = await fetch(
-        `http://localhost:5000/api/bensin/${this.bbmToUpdate.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: this.tokenAdmin,
-          },
-          body: JSON.stringify({
-            nama_bbm: this.updateBbmNama,
-            harga: parseInt(this.updateBbmHarga),
-          }),
+      const res = await fetch(`${API_URL}/bensin/${this.bbmToUpdate.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: this.tokenAdmin,
         },
-      );
+        body: JSON.stringify({
+          nama_bbm: this.updateBbmNama,
+          harga: parseInt(this.updateBbmHarga),
+        }),
+      });
       const data = await res.json();
       if (res.status !== 200) return alert(data.error);
       alert("Sukses mengubah data BBM!");
@@ -149,20 +153,17 @@ createApp({
       this.loadDataAwal();
     },
     async updateDataMotor() {
-      const res = await fetch(
-        `http://localhost:5000/api/motor/${this.motorToUpdate.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: this.tokenAdmin,
-          },
-          body: JSON.stringify({
-            merek: this.updateMotorNama,
-            kapasitas: parseFloat(this.updateMotorKapasitas),
-          }),
+      const res = await fetch(`${API_URL}/motor/${this.motorToUpdate.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: this.tokenAdmin,
         },
-      );
+        body: JSON.stringify({
+          merek: this.updateMotorNama,
+          kapasitas: parseFloat(this.updateMotorKapasitas),
+        }),
+      });
       const data = await res.json();
       if (res.status !== 200) return alert(data.error);
       alert("Sukses memperbarui data motor!");
