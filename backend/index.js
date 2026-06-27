@@ -67,12 +67,13 @@ initDb();
 // 2. HUBUNGKAN KE PETA JALAN API
 app.use("/api", apiRoutes);
 
-// 3. JALANKAN SERVER (Hanya jalan jika di lokal komputer)
-if (process.env.NODE_ENV !== "production") {
+// 3. JALANKAN SERVER (Hanya jika di lokal komputer)
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   app.listen(PORT, () =>
     console.log(`Server Backend berjalan di http://localhost:${PORT}`),
   );
 }
 
 // WAJIB TAMBAHKAN INI UNTUK VERCEL:
-export default app;
+import serverless from "serverless-http";
+export default serverless(app);
