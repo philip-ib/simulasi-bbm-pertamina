@@ -1,7 +1,12 @@
 const { createApp } = Vue;
 
-// Trik Sakti: Otomatis deteksi localhost vs internet Vercel
-const API_URL = window.location.origin + "/api";
+// KODE PINTAR: Jika jalan di lokal (localhost), arahkan ke port backend 5000.
+// Jika di internet Vercel, gunakan alamat relatif.
+const API_URL =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? "http://localhost:5000/api"
+    : window.location.origin + "/api";
 
 createApp({
   data() {
