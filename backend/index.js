@@ -4,26 +4,50 @@ import pg from "pg";
 import apiRoutes from "./routes/api.js";
 import cookieParser from "cookie-parser";
 import bcrypt from "bcrypt";
+import serverless from "serverless-http";
 import "dotenv/config";
 
-// Validasi Environment Variables
+// Validasi Environment Variables — gunakan console.error saja di serverless (process.exit akan crash)
 if (!process.env.SECRET_KEY || !process.env.DATABASE_URL) {
-  console.error("FATAL ERROR: SECRET_KEY atau DATABASE_URL belum di-set di .env");
-  process.exit(1);
+  console.error("FATAL ERROR: SECRET_KEY atau DATABASE_URL belum di-set di environment.");
 }
 
 const { Pool } = pg;
 export const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({ origin: true, credentials: true }));
+// Konfigurasi CORS yang kompatibel untuk semua environment (lokal & Vercel)
+const allowedOrigins = [
+  "http://localhost:8000",
+  "http://127.0.0.1:8000",
+  "http://localhost:5500",
+  "http://127.0.0.1:5500",
+];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Izinkan request tanpa origin (misalnya dari curl atau Postman)
+      if (!origin) return callback(null, true);
+      // Izinkan semua sub-domain Vercel
+      if (origin.includes(".vercel.app") || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 
-// 1. SETUP KONEKSI POSTGRESQL (Menggunakan URL dari .env)
+// 1. SETUP KONEKSI POSTGRESQL
+// Bersihkan DATABASE_URL dari parameter 'channel_binding' yang tidak didukung
+const rawDbUrl = process.env.DATABASE_URL || "";
+const cleanDbUrl = rawDbUrl.replace(/[&?]channel_binding=[^&]*/g, "").replace(/\?$/, "");
+
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL.includes("localhost")
+  connectionString: cleanDbUrl,
+  ssl: cleanDbUrl.includes("localhost")
     ? false
     : { rejectUnauthorized: false },
 });
@@ -77,8 +101,8 @@ const initDb = async () => {
     // Isi data admin default jika tabel users kosong
     const userCheck = await pool.query("SELECT COUNT(*) FROM users");
     if (parseInt(userCheck.rows[0].count) === 0) {
-      const defaultUsername = process.env.ADMIN_USERNAME || 'admin';
-      const defaultPassword = process.env.ADMIN_PASSWORD || '123456';
+      const defaultUsername = process.env.ADMIN_USERNAME || "admin";
+      const defaultPassword = process.env.ADMIN_PASSWORD || "123456";
       const hashedPassword = await bcrypt.hash(defaultPassword, 10);
       await pool.query(
         "INSERT INTO users (username, password) VALUES ($1, $2)",
@@ -106,6 +130,5 @@ if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   );
 }
 
-// WAJIB TAMBAHKAN INI UNTUK VERCEL:
-import serverless from "serverless-http";
+// EXPORT UNTUK VERCEL SERVERLESS
 export default serverless(app);
