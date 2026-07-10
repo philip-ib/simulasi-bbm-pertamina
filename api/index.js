@@ -1,3 +1,4 @@
-// Vercel entry point - ini adalah file yang Vercel baca untuk serverless function
-// File ini meng-import dan me-export handler dari backend/index.js
-export { default } from "../backend/index.js";
+// Vercel entry point
+// File ini meng-import handler dari backend
+import handler from "../backend/index.js";
+export default handler;
