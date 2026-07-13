@@ -8,6 +8,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Set env vars BEFORE importing app (ESM needs this before dynamic import)
 process.env.NODE_ENV = "test";
 process.env.DB_PATH = path.join(__dirname, "..", "test-data.db");
+process.env.ADMIN_USERNAME = "admin";
+process.env.ADMIN_PASSWORD = "admin123";
 
 // Clean old test DB
 if (fs.existsSync(process.env.DB_PATH)) {
