@@ -1,5 +1,6 @@
 import { getDb } from "./connection.js";
 import bcrypt from "bcrypt";
+import { randomBytes } from "crypto";
 
 export default async function initDb() {
   const db = await getDb();
@@ -47,10 +48,18 @@ export default async function initDb() {
   const usersCount = db.prepare("SELECT COUNT(*) AS c FROM users").get();
   if (usersCount.c === 0) {
     const username = process.env.ADMIN_USERNAME || "admin";
-    const password = process.env.ADMIN_PASSWORD || "admin123";
-    const hash = bcrypt.hashSync(password, 10);
-    db.prepare("INSERT INTO users (username, password_hash) VALUES (?, ?)").run(username, hash);
-    console.log(`[DB] Admin user "${username}" dibuat. Ganti password setelah login pertama.`);
+
+    if (!process.env.ADMIN_PASSWORD) {
+      const randomPass = randomBytes(8).toString("hex");
+      const hash = bcrypt.hashSync(randomPass, 10);
+      db.prepare("INSERT INTO users (username, password_hash) VALUES (?, ?)").run(username, hash);
+      console.log(`[DB] Admin user "${username}" dibuat dengan password: ${randomPass}`);
+      console.log(`[DB] ⚠️  Simpan password ini! Set ADMIN_PASSWORD di .env untuk menggantinya.`);
+    } else {
+      const hash = bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10);
+      db.prepare("INSERT INTO users (username, password_hash) VALUES (?, ?)").run(username, hash);
+      console.log(`[DB] Admin user "${username}" dibuat (password dari .env).`);
+    }
   }
 
   console.log("[DB] Database siap.");
